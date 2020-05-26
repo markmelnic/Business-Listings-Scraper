@@ -96,12 +96,12 @@ class businessesforsale_com():
             return
         
         # get business details
-        real_estate = ''
-        reason = ''
-        employees = ''
-        year = ''
-        inventory = ''
-        ffe = ''
+        real_estate = "n/a"
+        reason = "n/a"
+        employees = "n/a"
+        year = "n/a"
+        inventory = "n/a"
+        ffe = "n/a"
         for inf in soup.find_all(class_ = 'listing-details'):
             for detail in inf.find_all('dt'):
                 
@@ -123,20 +123,6 @@ class businessesforsale_com():
                 # furniture / fixtures value
                 elif "furniture / fixtures value" in detail.text.lower():
                     ffe = format_properly(inf.find('dd').text)
-        
-        # write n/a if none
-        if real_estate == '':
-            real_estate = "n/a"
-        if reason == '':
-            reason = "n/a"
-        if employees == '':
-            employees = "n/a"
-        if year == '':
-            year = "n/a"
-        if inventory == '':
-            inventory = "n/a"
-        if ffe == '':
-            ffe = "n/a"
         
         # get asking price
         price = soup.find(class_ = 'price')
@@ -161,4 +147,7 @@ class businessesforsale_com():
         except:
             contact = "n/a"
         
-        csvWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact])
+        # phone
+        phone = "n/a"
+        
+        csvWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone])

@@ -1,5 +1,6 @@
 
 import csv
+from loopnet_com import loopnet_com
 from businessesforsale_com import businessesforsale_com
 
 if __name__=='__main__':
@@ -22,10 +23,12 @@ if __name__=='__main__':
     if data == '':
         with open("results.csv", "a", newline='') as resultsFile:
             csvWriter = csv.writer(resultsFile)
-            csvWriter.writerow(["Source", "State", "Region", "Title", "Description", "Real estate", "Reason for selling", "Employees", "Year", "Price", "Revenue", "EBITDA", "Cash flow", "Inventory", "FFE", "Result", "Contact"])
+            csvWriter.writerow(["Source", "State", "Region", "Title", "Description", "Real estate", "Reason for selling", "Employees", "Year", "Price", "Revenue", "EBITDA", "Cash flow", "Inventory", "FFE", "Result", "Contact", "Phone"])
             resultsFile.close()
                     
     # find link corresponding function
     for link in links:
         if "businessesforsale" in link:
             businessesforsale_com(link)
+        if "loopnet" in link:
+            loopnet_com(link)
