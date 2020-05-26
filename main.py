@@ -8,7 +8,7 @@ if __name__=='__main__':
         links = linksFile.read().splitlines()
         linksFile.close()
 
-    # check if file is empty and write first line
+    # check if file is empty or non existent
     try:
         with open("results.csv", "r", newline='') as resultsFile:
             data = resultsFile.read()
@@ -18,6 +18,7 @@ if __name__=='__main__':
             data = ''
             resultsFile.close()
         
+    # write first line
     if data == '':
         with open("results.csv", "a", newline='') as resultsFile:
             csvWriter = csv.writer(resultsFile)
