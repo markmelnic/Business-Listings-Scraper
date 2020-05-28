@@ -4,23 +4,28 @@ import requests
 import threading
 from bs4 import BeautifulSoup
 
+# request headers
 global headers
 headers = {"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'}
 
+# encode and format
 def format_properly(string):
     string = str(string.encode("utf8"))
     string = str(string.replace("\\n", "").replace("b'", "").replace("'", ""))
     return string
                         
 class businessesforsale_com():
-    def __init__(self, link):
+    def __init__(self, link, mode):
         categories_links = self.get_categories(link)
-        self.scrape_category(categories_links)
+        self.scrape_category(categories_links, mode)
         
+    # get all categories from categories page
     def get_categories(self, link):
+        # make request and generate code soup
         page = requests.get(link, headers = headers, timeout=30)
         soup = BeautifulSoup(page.content, 'html.parser')
 
+        # get each link
         categories_links = []
         for category in soup.find_all(class_='cats-sector'):
             category_link = category.find('a')
@@ -28,7 +33,8 @@ class businessesforsale_com():
 
         return categories_links
     
-    def scrape_category(self, categories_links):        
+    # start scraping a category
+    def scrape_category(self, categories_links, mode):        
         for link in categories_links:
             lindex = 0
             while True:
@@ -47,26 +53,44 @@ class businessesforsale_com():
                 # get all result links
                 results = []
                 for res in soup.find_all(class_='result'):
-                    
+                    # get the link for each result
                     for result_link in res.find_all('a'):
                         results.append(result_link['href'])
                         break
-                            
-                # process every result
-                with open("results.csv", "a", newline='') as resultsFile:
-                    csvWriter = csv.writer(resultsFile)
-                    threads = []
-                    for result in results:
-                        thread = threading.Thread(target = self.scrape_result, args = (result, csvWriter))
-                        threads.append(thread)
-                        thread.start()
-                        
-                    for thread in threads:
-                        thread.join()
+                
+                # read current data
+                with open("results.csv", "r", newline='') as resultsFile:
+                    reader = csv.reader(resultsFile)
+                    alldata = list(reader)
+                    data = []
+                    for d in alldata:
+                        data.append(d[15])
                     resultsFile.close()
+                    
+                # process every result
+                with open("changes.csv", "a", newline='') as changesFile:
+                    # generate writer object for changes file
+                    changesWriter = csv.writer(changesFile)
+                    with open("results.csv", "a", newline='') as resultsFile:
+                        # generate writer object for results file
+                        csvWriter = csv.writer(resultsFile)
+                        # open new thread for each result on the page
+                        threads = []
+                        for result in results:
+                            thread = threading.Thread(target = self.scrape_result, args = (result, csvWriter, changesWriter, mode, data))
+                            threads.append(thread)
+                            thread.start()
+                        # wait for all threads to execute
+                        for thread in threads:
+                            thread.join()
+                        # close files
+                        resultsFile.close()
+                    changesFile.close()
 
-    def scrape_result(self, result, csvWriter):
+    # scrape listing
+    def scrape_result(self, result, csvWriter, changesWriter, mode, data):
         print(result)
+        # make request and generate code soup
         page = requests.get(result, headers = headers, timeout=30)
         soup = BeautifulSoup(page.content, 'html.parser')
         
@@ -150,4 +174,12 @@ class businessesforsale_com():
         # phone
         phone = "n/a"
         
-        csvWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone])
+        # write data to csv file
+        # if mode is 'f' then changes will not be taken into consideration
+        if mode.lower() == 'f':
+            csvWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone])
+        # if mode is 't' then only changes will be written to the output file
+        else:
+            listing_data = [source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone]
+            if not result in data:
+                changesWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone])

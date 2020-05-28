@@ -4,19 +4,22 @@ import requests
 import threading
 from bs4 import BeautifulSoup
 
+# request headers
 global headers
 headers = {"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'}
 
+# encode and format
 def format_properly(string):
     string = str(string.encode("utf8"))
     string = str(string.replace("\\n", "").replace("b'", "").replace("'", ""))
     return string
                         
 class loopnet_com():
-    def __init__(self, link):
-        self.scrape_page(link)
+    def __init__(self, link, mode):
+        self.scrape_page(link, mode)
 
-    def scrape_page(self, link):
+    # scrape listings page
+    def scrape_page(self, link, mode):
         permalink = link
         lindex = 0
         while True:
@@ -24,7 +27,8 @@ class loopnet_com():
             # get next link
             if lindex != 1:
                 link = permalink + "/" + str(lindex)
-            print(link)
+                
+            # make request and generate code soup
             page = requests.get(link, headers = headers, timeout=30)
             soup = BeautifulSoup(page.content, 'html.parser')
             
@@ -44,22 +48,40 @@ class loopnet_com():
             for res in soup.find_all('app-listing-showcase'):
                 result_link = res.find('a')
                 results.append("https://www.loopnet.com" + result_link['href'])
-                       
-            # process every result
-            with open("results.csv", "a", newline='') as resultsFile:
-                csvWriter = csv.writer(resultsFile)
-                threads = []
-                for result in results:
-                    thread = threading.Thread(target = self.scrape_result, args = (result, csvWriter))
-                    threads.append(thread)
-                    thread.start()
-                    
-                for thread in threads:
-                    thread.join()
+                     
+             # read current data
+            with open("results.csv", "r", newline='') as resultsFile:
+                reader = csv.reader(resultsFile)
+                alldata = list(reader)
+                data = []
+                for d in alldata:
+                    data.append(d[15])
                 resultsFile.close()
-            
-    def scrape_result(self, result, csvWriter):
-        #print(result)
+                      
+            # process every result
+            with open("changes.csv", "a", newline='') as changesFile:
+                # generate writer object for changes file
+                changesWriter = csv.writer(changesFile)
+                with open("results.csv", "a", newline='') as resultsFile:
+                    # generate writer object for results file
+                    csvWriter = csv.writer(resultsFile)
+                    # open new thread for each result on the page
+                    threads = []
+                    for result in results:
+                        thread = threading.Thread(target = self.scrape_result, args = (result, csvWriter, changesWriter, mode, data))
+                        threads.append(thread)
+                        thread.start()
+                    # wait for all threads to execute
+                    for thread in threads:
+                        thread.join()
+                    # close files
+                    resultsFile.close()
+                changesFile.close()
+    
+    # scrape listing
+    def scrape_result(self, result, csvWriter, changesWriter, mode, data):
+        print(result)
+        # make request and generate code soup
         page = requests.get(result, headers = headers, timeout=30)
         soup = BeautifulSoup(page.content, 'html.parser')
         
@@ -146,4 +168,12 @@ class loopnet_com():
         phone = soup.find(class_ = 'profile-phone')
         phone = format_properly(phone.text)
         
-        csvWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone])
+        # write data to csv file
+        # if mode is 'f' then changes will not be taken into consideration
+        if mode.lower() == 'f':
+            csvWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone])
+        # if mode is 't' then only changes will be written to the output file
+        else:
+            listing_data = [source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone]
+            if not result in data:
+                changesWriter.writerow([source, state, region, title, description, real_estate, reason, employees, year, price, revenue, ebitda, cash_flow, inventory, ffe, result, contact, phone])
