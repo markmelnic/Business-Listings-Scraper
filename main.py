@@ -9,25 +9,21 @@ if __name__=='__main__':
         links = linksFile.read().splitlines()
         mode = links[0]
         links.pop(0)
-        linksFile.close()
 
     # check if file is empty or non existent
     try:
         with open("results.csv", "r", newline='') as resultsFile:
             alldata = resultsFile.read()
-            resultsFile.close()
     except:
         with open("results.csv", "a", newline='') as resultsFile:
             alldata = ''
-            resultsFile.close()
-        
+
     # write first line if file is empty
     if alldata == '':
         with open("results.csv", "a", newline='') as resultsFile:
             csvWriter = csv.writer(resultsFile)
             csvWriter.writerow(["Source", "State", "Region", "Title", "Description", "Real estate", "Reason for selling", "Employees", "Year", "Price", "Revenue", "EBITDA", "Cash flow", "Inventory", "FFE", "Result", "Contact", "Phone"])
-            resultsFile.close()
-                    
+
     # find link corresponding function
     for link in links:
         if "businessesforsale" in link:

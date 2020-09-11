@@ -5,15 +5,14 @@ import threading
 from bs4 import BeautifulSoup
 
 # request headers
-global headers
-headers = {"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'}
+HEADERS = {"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'}
 
 # encode and format
 def format_properly(string):
     string = str(string.encode("utf8"))
     string = str(string.replace("\\n", "").replace("b'", "").replace("'", ""))
     return string
-                        
+
 class loopnet_com():
     def __init__(self, link, mode):
         self.scrape_page(link, mode)
@@ -27,15 +26,15 @@ class loopnet_com():
             # get next link
             if lindex != 1:
                 link = permalink + "/" + str(lindex)
-                
+
             # make request and generate code soup
-            page = requests.get(link, headers = headers, timeout=30)
+            page = requests.get(link, headers = HEADERS, timeout=30)
             soup = BeautifulSoup(page.content, 'html.parser')
-            
+
             # break if no results found
             if len(soup.find_all('app-listing-showcase')) == 0:
                 break
-            
+
             # get all result links
             results = []
             try:
@@ -48,16 +47,15 @@ class loopnet_com():
             for res in soup.find_all('app-listing-showcase'):
                 result_link = res.find('a')
                 results.append("https://www.loopnet.com" + result_link['href'])
-                     
-             # read current data
+
+            # read current data
             with open("results.csv", "r", newline='') as resultsFile:
                 reader = csv.reader(resultsFile)
                 alldata = list(reader)
                 data = []
                 for d in alldata:
                     data.append(d[15])
-                resultsFile.close()
-                      
+
             # process every result
             with open("changes.csv", "a", newline='') as changesFile:
                 # generate writer object for changes file
@@ -74,15 +72,12 @@ class loopnet_com():
                     # wait for all threads to execute
                     for thread in threads:
                         thread.join()
-                    # close files
-                    resultsFile.close()
-                changesFile.close()
-    
+
     # scrape listing
     def scrape_result(self, result, csvWriter, changesWriter, mode, data):
         print(result)
         # make request and generate code soup
-        page = requests.get(result, headers = headers, timeout=30)
+        page = requests.get(result, headers = HEADERS, timeout=30)
         soup = BeautifulSoup(page.content, 'html.parser')
         
         # source
@@ -90,17 +85,17 @@ class loopnet_com():
 
         #listing
         full_listing = soup.find(class_ = "imageContact")
-        
+
         # title
         title = full_listing.find("h1")
         title = format_properly(title.find('span').text)
-        
+
         # description
         try:
             description = format_properly(soup.find(class_ = "col-parent col-12 mobile-col-6 tablet-col-6 summary text-light descriptionAd").text)
         except:
             return # ad or franchise
-        
+
         # get top results
         year = "n/a"
         price = "n/a"
@@ -129,7 +124,7 @@ class loopnet_com():
                         ebitda = format_properly(tds[1].find('span').text)
                 except:
                     pass
-        
+
         # get location
         state = "n/a"
         region = "n/a"
@@ -142,7 +137,7 @@ class loopnet_com():
             else:
                 region = location[0]
                 state = location[1]
-                    
+
         # get business details
         real_estate = "n/a"
         reason = "n/a"
@@ -163,11 +158,11 @@ class loopnet_com():
                 contact = contact + format_properly(div.text)
         except:
             contact = "n/a"
-        
+
         # phone
         phone = soup.find(class_ = 'profile-phone')
         phone = format_properly(phone.text)
-        
+
         # write data to csv file
         # if mode is 'f' then changes will not be taken into consideration
         if mode.lower() == 'f':
